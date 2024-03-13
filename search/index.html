@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<meta charset="UTF-8">
+<head>
+	<title>Index</title>
+	<style>
+		html {overflow-y:scroll;}
+		body {font-family: PingFangJetBrains, monospace, consolas; font-size: 16px; max-width:calc(min(90vw,1280px)); margin:auto; padding-top:2em; } 
+		#matchedArea, #searchArea {display:flex;} #matchedArea div{width:50%;}
+		#theInput {padding : .5em; width: 100%; margin:auto;}
+		a { text-decoration: none; }
+		a.lnk {
+			display: block;
+			padding: 0.5em;
+			border-radius: 3px;
+
+		}
+
+		a.lnk:hover {
+			background: #eee;
+			display:block;
+		}
+		.lnk>p.info {font-size: 80%; color: grey; }
+		#theBtn { width:30%; margin-left:1em;}
+		#theInput, #theBtn{ font-size: 20px;}
+		#main p span {color:darkgreen;}
+		pre.wrapPre {
+			white-space: break-spaces;
+		}
+	</style>
+</head>
+<body>
+	<div id="searchBox">
+		<div id="searchArea">
+			<input type="text" placeholder="Input Your Search..." id="theInput"/>
+			<button id="theBtn">Clear</button>
+		</div>
+		<div id="matchedArea">
+			<div id="theMatched"></div>
+			<div id="theMatchedEn"></div>
+		</div>
+	</div>
+	<div id="main">
+	</div>
+</body>
+<script type="text/javascript">
+	var dict;
+	function setContent(showAll=0)
+	{
+		let now = document.getElementById('allIndex'); now && now.remove()
+		let pre = document.createElement("pre")
+		pre.id = 'allIndex'
+		pre.className="wrapPre"
+		let s = "[收录的索引]:\n", idx=0;
+		let cnt = 0
+		for(var i in dict)
+		{
+			let j = "[" + dict[i] + "] " ;
+			s += j
+
+			if(showAll==0)
+			{
+				cnt++
+				if(cnt>999) {
+					s += '\n...\n<a href="javascript:setContent(1)">显示全部</a>'
+					break;
+				}
+			}
+		}
+		pre.innerHTML = s
+		document.getElementById("main").append(pre)
+	}
+
+	var request = new XMLHttpRequest();
+	request.open("get", "/cpp/reference/menu.json");
+	request.send(null);
+	request.onload = function () {
+		if (request.status == 200) {
+			dict = JSON.parse(request.responseText);
+			setContent(0);
+		}
+	}
+	var matchedList=[];
+	function showMatched()
+	{
+		var section = document.getElementById("theMatched")
+		var sectionEn = document.getElementById("theMatchedEn")
+		section.innerHTML = ""
+		sectionEn.innerHTML = ""
+		for( var i in matchedList)
+		{
+			let m = document.createElement("p")
+			let ele = matchedList[i]
+			let name=ele.val.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;")
+			.replace(/'/g, "&#039;");
+			m.innerHTML = '<a class="lnk" href="/cpp/reference' + ele.path+'" target="_blank"><p>'  + (ele.zh?"":"[en] ") + name +'</p>' + 
+			'<p class="info">'+ele.path+"</p></a>";
+			ele.zh ? section.append(m) : sectionEn.append(m)
+		}
+	}
+	function clearMatched(){document.getElementById("theMatched").innerHTML = ""; document.getElementById("theMatchedEn").innerHTML = "";}
+	function txtChanged()
+	{
+		var txt = document.getElementById("theInput").value;
+		if(txt.length<2)
+			return clearMatched();
+		matchedList=[];
+		for(var i in dict)
+		{
+			var path=i, val=dict[i], valStrip=dict[i].replace(/<[^>]+>/,'')
+			var pos = val.indexOf(txt)
+			if(pos>-1 || valStrip.indexOf(txt)>-1)
+			{
+				matchedList.push({path:path, val:val, pos:pos, zh:path.includes("zh/")});
+			}
+			if(matchedList.length>100)
+				break;
+		}
+		matchedList.sort((a,b)=>{return 10*(a.pos-b.pos) + a.val.length-b.val.length })
+		showMatched()
+	}
+
+	document.getElementById("theInput").oninput=function(){console.log("oninput"); txtChanged(); } 
+	document.getElementById("theBtn").onclick=function(){var ipt=document.getElementById("theInput"); ipt.value=""; clearMatched();ipt.focus();}
+//  * Created by JohnCh on 0630/2023.
+</script>
+</html>
